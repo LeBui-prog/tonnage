@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tonnage Musculation - EPS STAPS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #000;
+            color: #39FF14;
+            font-family: 'Courier New', Courier, monospace;
+            padding-bottom: 120px; 
+        }
+
+        .neon {
+            text-shadow: 0 0 5px #39FF14, 0 0 10px #39FF14;
+        }
+
+        input {
+            background: #111;
+            border: 1px solid #39FF14;
+            color: #39FF14;
+            padding: 12px;
+            width: 100%;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        input:focus {
+            box-shadow: 0 0 10px #39FF14;
+        }
+
+        button {
+            background: #39FF14;
+            color: #000;
+            font-weight: bold;
+            padding: 12px;
+            border-radius: 10px;
+            width: 100%;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            background: #00ff88;
+            transform: scale(1.02);
+        }
+
+        .card {
+            border: 2px solid #39FF14;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            background: rgba(57, 255, 20, 0.05);
+        }
+
+        .timer-active {
+            animation: pulse-red 1.5s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { background-color: rgba(239, 68, 68, 1); }
+            50% { background-color: rgba(185, 28, 28, 1); }
+            100% { background-color: rgba(239, 68, 68, 1); }
+        }
+
+        .serie-item {
+            border-left: 4px solid #39FF14;
+            background: #0a0a0a;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            border: 1px solid #39FF14;
+            padding: 8px;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        th {
+            background: rgba(57, 255, 20, 0.2);
+        }
+
+        .detail-text {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            color: #fff;
+            display: block;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <h1 class="text-3xl text-center neon font-bold mb-6 text-balance">
+        🏋️ TONNAGE EPS STAPS
+    </h1>
+
+    <!-- SECTION PLANIFICATION -->
+    <div id="planificationSection" class="card">
+        <h2 class="text-xl neon mb-4 flex items-center">
+            <span class="mr-2">📋</span> PLANIFICATION DE L'EXERCICE
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+                <label class="text-xs uppercase mb-1 block font-bold text-white">Nom de l'atelier</label>
+                <input id="workshopName" type="text" placeholder="ex: Développé Couché">
+            </div>
+            <div>
+                <label class="text-xs uppercase mb-1 block">RM (Charge Max kg)</label>
+                <input id="rm" type="number" placeholder="ex: 100">
+            </div>
+            <div>
+                <label class="text-xs uppercase mb-1 block">Repos (sec)</label>
+                <input id="restTime" type="number" placeholder="ex: 90">
+            </div>
+            <div>
+                <label class="text-xs uppercase mb-1 block">% Max RM</label>
+                <input id="pmax" type="number" value="80">
+            </div>
+            <div>
+                <label class="text-xs uppercase mb-1 block">% Min RM</label>
+                <input id="pmin" type="number" value="60">
+            </div>
+            <div>
+                <label class="text-xs uppercase mb-1 block">Séries</label>
+                <input id="series" type="number" placeholder="ex: 4">
+            </div>
+            <div>
+                <label class="text-xs uppercase mb-1 block">Reps / série</label>
+                <input id="reps" type="number" placeholder="ex: 10">
+            </div>
+        </div>
+        <button class="mt-6" onclick="genererExercice()">
+            Générer l'exercice
+        </button>
+        <div id="resultTheorique" class="mt-4 text-sm"></div>
+    </div>
+
+    <!-- SECTION REALISATION -->
+    <div id="realisationSection" class="card hidden">
+        <h2 class="text-xl neon mb-4 flex items-center">
+            <span class="mr-2">⚡</span> <span id="displayWorkshopName">EXERCICE</span>
+        </h2>
+        <div id="seriesContainer" class="space-y-4"></div>
+        <div id="resultReel" class="mt-6"></div>
+    </div>
+
+    <!-- SECTION RECAPITULATIF FINAL (TOTAL DE LA SEANCE) -->
+    <div id="finalSummarySection" class="card hidden">
+        <h2 class="text-xl neon mb-4 flex items-center">
+            <span class="mr-2">📊</span> RÉCAPITULATIF DE LA SÉANCE
+        </h2>
+        <div id="summaryContent"></div>
+        <button class="mt-6 bg-white text-black" onclick="window.location.reload()">
+            Nouvelle Séance Complète
+        </button>
+    </div>
+
+    <!-- ZONE TIMER & TONNAGE (FIXE) -->
+    <div id="statusContainer" class="fixed bottom-0 left-0 w-full hidden z-50 border-t border-green-500 bg-black">
+        <div class="flex h-16 divide-x divide-green-500">
+            <div id="timerDisplay" class="w-1/2 flex items-center justify-center text-xl font-bold text-white transition-colors duration-500">
+                ⏳ --:--
+            </div>
+            <div id="liveTonnageDisplay" class="w-1/2 flex flex-col items-center justify-center bg-zinc-900">
+                <span class="text-[10px] uppercase opacity-70">Tonnage Exercice</span>
+                <span class="text-xl font-bold neon"><span id="currentLiveTonnage">0</span> kg</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let exercicesRealises = []; 
+        let nbSeriesEncours = 0;
+        let timerInterval;
+        let currentTotalTonnage = 0;
+
+        function genererExercice() {
+            const workshop = document.getElementById("workshopName").value || "Exercice";
+            const rm = parseFloat(document.getElementById("rm").value);
+            const pmax = parseFloat(document.getElementById("pmax").value) / 100;
+            const pmin = parseFloat(document.getElementById("pmin").value) / 100;
+            const series = parseInt(document.getElementById("series").value);
+            const reps = parseInt(document.getElementById("reps").value);
+
+            if (!rm || !series || !reps) {
+                alert("Veuillez remplir au moins le nom, la RM, les séries et les répétitions.");
+                return;
+            }
+
+            nbSeriesEncours = series;
+            currentTotalTonnage = 0; 
+            const chargeMax = rm * pmax;
+            const chargeMin = rm * pmin;
+
+            document.getElementById("displayWorkshopName").innerText = workshop.toUpperCase();
+            document.getElementById("resultTheorique").innerHTML = `
+                <div class="p-3 bg-black border border-green-900 rounded text-center">
+                    <div class="text-white font-bold mb-1">${workshop}</div>
+                    <div class="text-white">Zone Cible : <span class="font-bold">${chargeMin.toFixed(1)} - ${chargeMax.toFixed(1)} kg</span></div>
+                </div>
+            `;
+
+            document.getElementById("planificationSection").classList.add("hidden");
+            document.getElementById("realisationSection").classList.remove("hidden");
+            document.getElementById("statusContainer").classList.remove("hidden");
+            document.getElementById("currentLiveTonnage").innerText = "0";
+            document.getElementById("resultReel").innerHTML = ""; 
+            
+            genererInputsSeries(series, reps);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function genererInputsSeries(series, reps) {
+            const container = document.getElementById("seriesContainer");
+            container.innerHTML = "";
+            for (let i = 1; i <= series; i++) {
+                const isLast = (i === series);
+                container.innerHTML += `
+                    <div class="serie-item p-4 rounded-r-lg shadow-sm">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="font-bold text-lg text-white">SÉRIE ${i}</span>
+                            <button id="btnSerie${i}" onclick="validerSerie(${i}, ${isLast})" class="w-auto px-4 py-1 text-xs ${isLast ? 'bg-orange-500' : 'bg-blue-600'} text-white mt-0">
+                                ${isLast ? 'Terminer l\'exercice 🏁' : 'Valider & Repos ⏱️'}
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] uppercase opacity-60">Charge (kg)</label>
+                                <input type="number" id="charge${i}" placeholder="Kg">
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase opacity-60">Reps</label>
+                                <input type="number" id="rep${i}" value="${reps}">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function validerSerie(index, isLast) {
+            updateTonnage();
+            if (isLast) {
+                const btn = document.getElementById(`btnSerie${index}`);
+                btn.innerHTML = "Terminé ✅";
+                btn.className = "w-auto px-4 py-1 text-xs bg-zinc-700 text-white mt-0";
+                calculBilanExercice();
+            } else {
+                startTimer();
+                const btn = document.getElementById(`btnSerie${index}`);
+                btn.innerHTML = "Série OK ✅";
+                btn.classList.replace("bg-blue-600", "bg-zinc-700");
+            }
+        }
+
+        function updateTonnage() {
+            let total = 0;
+            for (let i = 1; i <= nbSeriesEncours; i++) {
+                const c = parseFloat(document.getElementById(`charge${i}`).value);
+                const r = parseFloat(document.getElementById(`rep${i}`).value);
+                if (c && r) total += (c * r);
+            }
+            currentTotalTonnage = total;
+            document.getElementById("currentLiveTonnage").innerText = total.toFixed(1);
+        }
+
+        function startTimer() {
+            const restTimeInput = document.getElementById("restTime").value;
+            let timeLeft = parseInt(restTimeInput) || 90;
+            clearInterval(timerInterval);
+            const display = document.getElementById("timerDisplay");
+            display.className = "w-1/2 flex items-center justify-center text-xl font-bold text-white transition-colors duration-500 timer-active";
+            timerInterval = setInterval(() => {
+                let mins = Math.floor(timeLeft / 60);
+                let secs = timeLeft % 60;
+                display.innerHTML = `⏳ ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    display.innerHTML = "🔔 REPRISE !";
+                    display.className = "w-1/2 flex items-center justify-center text-xl font-bold text-white transition-colors duration-500 bg-green-600";
+                    playBeep();
+                }
+                timeLeft--;
+            }, 1000);
+        }
+
+        function playBeep() {
+            try {
+                const context = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = context.createOscillator();
+                const gain = context.createGain();
+                osc.connect(gain);
+                gain.connect(context.destination);
+                osc.frequency.value = 587.33;
+                osc.start();
+                gain.gain.exponentialRampToValueAtTime(0.00001, context.currentTime + 1);
+                osc.stop(context.currentTime + 1);
+            } catch (e) { }
+        }
+
+        function calculBilanExercice() {
+            updateTonnage(); 
+            const total = currentTotalTonnage;
+            const workshop = document.getElementById("workshopName").value || "Exercice";
+            const rm = parseFloat(document.getElementById("rm").value);
+            const pmax = parseFloat(document.getElementById("pmax").value) / 100;
+            const pmin = parseFloat(document.getElementById("pmin").value) / 100;
+
+            const tMaxTheo = nbSeriesEncours * parseInt(document.getElementById("reps").value) * (rm * pmax);
+            const tMinTheo = nbSeriesEncours * parseInt(document.getElementById("reps").value) * (rm * pmin);
+
+            // Collecte des détails des séries
+            let detailSeries = [];
+            for (let i = 1; i <= nbSeriesEncours; i++) {
+                const c = document.getElementById(`charge${i}`).value || "0";
+                const r = document.getElementById(`rep${i}`).value || "0";
+                detailSeries.push(`${c}kgx${r}`);
+            }
+
+            let medaille = "";
+            if (total >= tMaxTheo) medaille = "🥇";
+            else if (total > tMinTheo) medaille = "🥈";
+            else if (total === tMinTheo) medaille = "🥉";
+            else medaille = "💪";
+
+            exercicesRealises.push({
+                nom: workshop,
+                tonnage: total,
+                cibleMin: tMinTheo,
+                cibleMax: tMaxTheo,
+                medaille: medaille,
+                series: detailSeries,
+                nbSeries: nbSeriesEncours
+            });
+
+            document.getElementById("resultReel").innerHTML = `
+                <div class="text-center p-6 border-2 border-dashed border-green-500 rounded-xl bg-black">
+                    <div class="text-5xl mb-2">${medaille}</div>
+                    <div class="text-white text-lg font-bold mb-1 uppercase">${workshop}</div>
+                    <div class="text-3xl font-bold neon mb-4">${total.toFixed(1)} kg</div>
+                    
+                    <div class="space-y-3">
+                        <button class="bg-blue-600 text-white" onclick="preparerNouvelAtelier()">
+                            ➕ Ajouter un autre atelier
+                        </button>
+                        <button class="bg-white text-black" onclick="afficherRecapFinal()">
+                            🏁 Terminer la séance
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById("resultReel").scrollIntoView({ behavior: 'smooth' });
+            document.getElementById("statusContainer").classList.add("hidden");
+        }
+
+        function preparerNouvelAtelier() {
+            document.getElementById("workshopName").value = "";
+            document.getElementById("rm").value = "";
+            document.getElementById("series").value = "";
+            document.getElementById("realisationSection").classList.add("hidden");
+            document.getElementById("planificationSection").classList.remove("hidden");
+            document.getElementById("resultTheorique").innerHTML = "";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function afficherRecapFinal() {
+            document.getElementById("realisationSection").classList.add("hidden");
+            document.getElementById("planificationSection").classList.add("hidden");
+            document.getElementById("finalSummarySection").classList.remove("hidden");
+
+            let totalTonnageSeance = 0;
+            let tableauHtml = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Atelier & Détails</th>
+                            <th>Tonnage</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            exercicesRealises.forEach(ex => {
+                totalTonnageSeance += ex.tonnage;
+                // On regroupe les séries pour l'affichage (ex: 4 x 60kgx10)
+                // Si toutes les séries sont identiques, on simplifie l'affichage
+                const allSame = ex.series.every(s => s === ex.series[0]);
+                const detailDisplay = allSame 
+                    ? `${ex.nbSeries} x ${ex.series[0]}` 
+                    : ex.series.join(" | ");
+
+                tableauHtml += `
+                    <tr>
+                        <td class="text-left">
+                            <span class="font-bold text-white uppercase">${ex.nom}</span>
+                            <span class="detail-text">${detailDisplay}</span>
+                        </td>
+                        <td>${ex.tonnage.toFixed(1)}</td>
+                        <td class="text-xl">${ex.medaille}</td>
+                    </tr>
+                `;
+            });
+
+            tableauHtml += `</tbody></table>`;
+
+            document.getElementById("summaryContent").innerHTML = `
+                <div class="text-center mb-6">
+                    <div class="text-xs uppercase opacity-60">Tonnage Global de la Séance</div>
+                    <div class="text-4xl font-bold neon">${totalTonnageSeance.toFixed(1)} kg</div>
+                </div>
+                ${tableauHtml}
+                <div class="mt-6 text-xs italic opacity-70 text-center">
+                    Séance terminée avec ${exercicesRealises.length} atelier(s).
+                </div>
+            `;
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
