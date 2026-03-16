@@ -13,19 +13,29 @@
             background: #000; 
             color: #39FF14; 
             font-family: 'Courier New', Courier, monospace; 
-            padding-bottom: 110px; 
+            padding-bottom: 140px; 
         }
         .neon { text-shadow: 0 0 5px #39FF14, 0 0 10px #39FF14; }
+        .neon-red { text-shadow: 0 0 5px #FF3131, 0 0 10px #FF3131; }
         
-        input { 
+        input, select { 
             background: #111; 
             border: 1px solid #39FF14; 
             color: #39FF14; 
-            padding: 12px; 
+            padding: 10px; 
             width: 100%; 
             border-radius: 8px; 
             outline: none; 
-            margin-bottom: 10px;
+            margin-bottom: 5px;
+            appearance: none;
+            font-size: 14px;
+        }
+        select {
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2339FF14'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
         }
         button { 
             background: #39FF14; 
@@ -57,52 +67,72 @@
         th { background: rgba(57, 255, 20, 0.2); }
         label { font-size: 0.65rem; text-transform: uppercase; margin-bottom: 2px; display: block; opacity: 0.8; }
         
+        .kg-display {
+            font-size: 11px;
+            color: #FF3131;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            height: 42px; 
+            padding-left: 4px;
+        }
+
         #monitoringBar {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             background: #000;
-            border-top: 2px solid #39FF14;
+            border-top: 3px solid #FF3131; 
             display: none;
             z-index: 50;
-            overflow: hidden;
-            height: 70px;
+            height: 75px;
         }
 
-        #timerOverlay {
-            display: none;
-            width: 100%;
-            height: 100%;
-        }
-
-        .split-bar {
+        .monitor-container {
             display: flex;
             height: 100%;
-            align-items: stretch;
+            position: relative;
         }
 
-        .left-panel {
-            width: 30%;
-            background: #fff;
-            color: #dc2626;
+        .vertical-divider {
+            position: absolute;
+            left: 33.33%;
+            top: 10px;      
+            bottom: 10px;   
+            width: 3px;     
+            background-color: #FF3131;
+            transform: translateX(-50%); 
+        }
+
+        .tonnage-block {
+            width: 33.33%;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            border-right: 2px solid #dc2626;
-            padding: 2px;
-            text-align: center;
         }
 
-        .right-panel {
-            width: 70%;
-            background: #dc2626;
-            color: #fff;
+        .rest-block {
+            width: 66.66%;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+        }
+
+        .panel-title {
+            font-size: 7px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #FF3131;
+            margin-bottom: 1px;
+        }
+
+        .panel-value {
+            color: #FF3131;
+            font-weight: bold;
         }
 
         .medal-card {
@@ -113,36 +143,62 @@
             text-align: center;
             margin-top: 20px;
         }
+
+        .progress-bg { background: #111; border: 1px solid #333; height: 10px; border-radius: 5px; overflow: hidden; position: relative; }
+        .progress-fill { height: 100%; transition: width 0.5s ease-out; }
     </style>
 </head>
 <body class="p-4 max-w-md mx-auto">
 
     <div class="flex justify-center items-center mb-6">
-        <h1 class="text-xl font-bold neon text-center">TONNAGE STAPS REIMS</h1>
+        <h1 class="text-xl font-bold neon text-center uppercase tracking-tighter">TONNAGE STAPS REIMS</h1>
     </div>
 
     <!-- 1. PLANIFICATION -->
     <div id="planificationSection" class="card">
         <h2 class="text-lg font-bold mb-4 border-b border-green-900 pb-2 text-center uppercase">📋 Nouvel Atelier</h2>
-        <div class="space-y-3">
-            <div>
-                <label>Atelier</label>
-                <input id="workshopName" type="text" placeholder="ex: Squat">
+        <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label>Atelier</label>
+                    <input id="workshopName" type="text" placeholder="ex: Squat">
+                </div>
+                <div>
+                    <label>Thème de travail</label>
+                    <select id="workTheme" onchange="applyTheme()">
+                        <option value="">-- Choisir --</option>
+                        <option value="tonification">Tonification</option>
+                        <option value="volume">Volume</option>
+                        <option value="force">Force</option>
+                    </select>
+                </div>
             </div>
             
             <div>
-                <label>Valeur de référence (kg)</label>
-                <input id="rm" type="number" placeholder="RM (kg)">
+                <label>Charge Répétition Maximale (kg)</label>
+                <input id="rm" type="number" placeholder="RM (kg)" oninput="updateKgCalculations()">
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
-                <div>
+            <div class="grid grid-cols-2 gap-x-4">
+                <!-- Bloc Min -->
+                <div class="flex flex-col">
                     <label>% RM Min</label>
-                    <input id="percentMin" type="number" placeholder="Min %">
+                    <div class="flex items-start">
+                        <div class="w-3/5">
+                            <input id="percentMin" type="number" placeholder="Min" oninput="updateKgCalculations()">
+                        </div>
+                        <div id="kgMinDisplay" class="w-2/5 kg-display"></div>
+                    </div>
                 </div>
-                <div>
+                <!-- Bloc Max -->
+                <div class="flex flex-col">
                     <label>% RM Max</label>
-                    <input id="percentMax" type="number" placeholder="Max %">
+                    <div class="flex items-start">
+                        <div class="w-3/5">
+                            <input id="percentMax" type="number" placeholder="Max" oninput="updateKgCalculations()">
+                        </div>
+                        <div id="kgMaxDisplay" class="w-2/5 kg-display"></div>
+                    </div>
                 </div>
             </div>
 
@@ -161,8 +217,7 @@
                 </div>
             </div>
         </div>
-        <!-- Modification du libellé du bouton ici -->
-        <button class="mt-4" onclick="genererExercice()">Démarrer l'atelier</button>
+        <button class="mt-6" onclick="genererExercice()">Démarrer l'atelier</button>
     </div>
 
     <!-- 2. REALISATION -->
@@ -177,45 +232,29 @@
     <!-- 3. BILAN FINAL -->
     <div id="finalSummarySection" class="card hidden">
         <h2 class="text-lg font-bold mb-4 border-b border-green-900 pb-2 text-center uppercase">BILAN DE SÉANCE</h2>
-        
         <div id="summaryContent" class="space-y-6"></div>
-        
-        <!-- Zone Médaille statique -->
         <div id="medalContainer" class="medal-card hidden">
             <div id="medalEmoji" class="text-5xl mb-2"></div>
             <div id="medalTitle" class="text-xl font-black uppercase tracking-widest"></div>
             <div id="medalDesc" class="text-[10px] mt-1 opacity-70"></div>
         </div>
-
         <div class="mt-8 grid grid-cols-2 gap-4">
-            <button class="bg-blue-600 text-white py-4" onclick="exportPDF()">
-                Exporter PDF
-            </button>
-            <button class="bg-white text-black py-4" onclick="resetSeance()">
-                Nouvelle Séance
-            </button>
+            <button class="bg-blue-600 text-white py-4" onclick="exportPDF()">Exporter PDF</button>
+            <button class="bg-white text-black py-4" onclick="resetSeance()">Nouvelle Séance</button>
         </div>
     </div>
 
-    <!-- BANDEAU DE MONITORING -->
+    <!-- BANDEAU DE MONITORING UNIFIÉ -->
     <div id="monitoringBar">
-        <div id="timerOverlay">
-            <div class="split-bar">
-                <div class="left-panel">
-                    <div class="text-[7px] uppercase font-black leading-tight">Tonnage<br>Réalisé</div>
-                    <div id="tonnageRestDisplay" class="text-sm font-bold">0 kg</div>
-                </div>
-                <div class="right-panel">
-                    <div class="text-[8px] uppercase font-bold tracking-widest opacity-80 mb-0.5">Repos</div>
-                    <div id="timerBigDisplay" class="text-3xl font-bold">00:00</div>
-                </div>
+        <div class="monitor-container">
+            <div class="vertical-divider"></div>
+            <div class="tonnage-block">
+                <div class="panel-title">Tonnage Cumulé</div>
+                <div id="liveTonnage" class="panel-value text-base neon-red">0 kg</div>
             </div>
-        </div>
-        
-        <div id="workStats" class="flex justify-start items-center px-4 h-full">
-            <div class="text-left">
-                <div class="text-[8px] uppercase opacity-70">Tonnage Réalisé</div>
-                <div id="liveTonnage" class="text-xl font-bold neon">0 kg</div>
+            <div class="rest-block">
+                <div id="restTitle" class="panel-title invisible">Récupération</div>
+                <div id="timerDisplay" class="panel-value text-2xl neon-red invisible">00:00</div>
             </div>
         </div>
     </div>
@@ -228,66 +267,94 @@
         };
         let timerInterval;
 
+        function updateKgCalculations() {
+            const rm = parseFloat(document.getElementById('rm').value) || 0;
+            const pMin = parseFloat(document.getElementById('percentMin').value) || 0;
+            const pMax = parseFloat(document.getElementById('percentMax').value) || 0;
+            
+            const kgMinDisplay = document.getElementById('kgMinDisplay');
+            const kgMaxDisplay = document.getElementById('kgMaxDisplay');
+
+            if (rm > 0) {
+                if (pMin > 0) kgMinDisplay.innerText = `${(rm * pMin / 100).toFixed(1)}kg`;
+                else kgMinDisplay.innerText = "";
+                
+                if (pMax > 0) kgMaxDisplay.innerText = `${(rm * pMax / 100).toFixed(1)}kg`;
+                else kgMaxDisplay.innerText = "";
+            } else {
+                kgMinDisplay.innerText = "";
+                kgMaxDisplay.innerText = "";
+            }
+        }
+
+        function applyTheme() {
+            const theme = document.getElementById('workTheme').value;
+            const minInput = document.getElementById('percentMin');
+            const maxInput = document.getElementById('percentMax');
+            const seriesInput = document.getElementById('series');
+            const repsInput = document.getElementById('reps');
+            const restInput = document.getElementById('restTime');
+
+            if(theme === 'tonification') { 
+                minInput.value = 50; 
+                maxInput.value = 60;
+                seriesInput.value = 4;
+                repsInput.value = 15;
+                restInput.value = 60;
+            }
+            else if(theme === 'volume') { 
+                minInput.value = 70; 
+                maxInput.value = 80;
+                seriesInput.value = 5;
+                repsInput.value = 10;
+                restInput.value = 90;
+            }
+            else if(theme === 'force') { 
+                minInput.value = 80; 
+                maxInput.value = 90;
+                seriesInput.value = 4; // Correction : passage de 5 à 4 séries
+                repsInput.value = 4;
+                restInput.value = 180;
+            }
+            else { 
+                minInput.value = ""; 
+                maxInput.value = ""; 
+                seriesInput.value = "";
+                repsInput.value = "";
+                restInput.value = "90";
+            }
+            updateKgCalculations();
+        }
+
         function resetSeance() {
             appData.exercices = [];
-            appData.currentCibles = { min: 0, max: 0 };
             appData.validatedSeries.clear();
             if (timerInterval) clearInterval(timerInterval);
-            
-            document.querySelectorAll('input').forEach(i => {
-                if(i.id !== 'restTime') i.value = "";
-                else i.value = "90";
+            document.querySelectorAll('input, select').forEach(i => {
+                if(i.id === 'restTime') i.value = "90"; else i.value = "";
             });
-            
-            const safeSetText = (id, val) => {
-                const el = document.getElementById(id);
-                if (el) el.innerText = val;
-            };
-
-            safeSetText('liveTonnage', "0 kg");
-            safeSetText('tonnageRestDisplay', "0 kg");
-            safeSetText('timerBigDisplay', "00:00");
-            
-            const timerEl = document.getElementById('timerBigDisplay');
-            if (timerEl) timerEl.classList.remove('animate-pulse');
-            
-            const resultReel = document.getElementById('resultReel');
-            if (resultReel) resultReel.innerHTML = "";
-            
-            const summaryContent = document.getElementById('summaryContent');
-            if (summaryContent) summaryContent.innerHTML = "";
-
-            const medalContainer = document.getElementById('medalContainer');
-            if (medalContainer) {
-                medalContainer.classList.add('hidden');
-                document.getElementById('finalSummarySection').insertBefore(medalContainer, document.querySelector('.grid.grid-cols-2.gap-4'));
-            }
-            
+            document.getElementById('liveTonnage').innerText = "0 kg";
+            document.getElementById('timerDisplay').innerText = "00:00";
+            document.getElementById('timerDisplay').classList.remove('animate-pulse');
             document.getElementById('finalSummarySection').classList.add('hidden');
             document.getElementById('realisationSection').classList.add('hidden');
             document.getElementById('monitoringBar').style.display = "none";
             document.getElementById('planificationSection').classList.remove('hidden');
+            updateKgCalculations();
+            window.scrollTo(0, 0);
         }
 
         function updateLiveTonnage() {
-            const sInput = document.getElementById('series');
-            const s = sInput ? (parseInt(sInput.value) || 0) : 0;
             let currentTotal = 0;
-            for(let i=1; i<=s; i++) {
-                if (appData.validatedSeries.has(i)) {
-                    const data = appData.validatedSeries.get(i);
-                    currentTotal += (data.charge * data.reps);
-                }
-            }
-            const txt = `${currentTotal} kg`;
-            const liveT = document.getElementById('liveTonnage');
-            const restT = document.getElementById('tonnageRestDisplay');
-            if (liveT) liveT.innerText = txt;
-            if (restT) restT.innerText = txt;
+            appData.validatedSeries.forEach((data) => {
+                currentTotal += (data.charge * data.reps);
+            });
+            document.getElementById('liveTonnage').innerText = `${currentTotal} kg`;
         }
 
         function genererExercice() {
             const ws = document.getElementById('workshopName').value;
+            const theme = document.getElementById('workTheme').value;
             const rm = parseFloat(document.getElementById('rm').value) || 0;
             const pMin = parseFloat(document.getElementById('percentMin').value) || 0;
             const pMax = parseFloat(document.getElementById('percentMax').value) || 0;
@@ -301,61 +368,64 @@
             appData.validatedSeries.clear();
 
             document.getElementById('monitoringBar').style.display = "block";
-            document.getElementById('workStats').style.display = "flex";
-            document.getElementById('timerOverlay').style.display = "none";
+            document.getElementById('timerDisplay').classList.add('invisible');
+            document.getElementById('restTitle').classList.add('invisible');
             updateLiveTonnage();
 
             document.getElementById('displayWorkshopName').innerText = ws;
             const container = document.getElementById('seriesContainer');
             container.innerHTML = "";
-            
-            const chargeMin = (rm * pMin / 100).toFixed(1);
+
+            // LOGIQUE DE CHARGE PAR DÉFAUT SELON THÈME
+            let chargeProposee;
+            if (theme === 'tonification') {
+                chargeProposee = (rm * 0.55).toFixed(1);
+            } else if (theme === 'volume') {
+                chargeProposee = (rm * 0.75).toFixed(1);
+            } else if (theme === 'force') {
+                chargeProposee = (rm * 0.85).toFixed(1);
+            } else {
+                chargeProposee = (rm * (pMin + pMax)/2 / 100).toFixed(1);
+            }
 
             for(let i=1; i<=s; i++) {
                 const isLast = (i === s);
-                const buttonLabel = isLast ? "Valider & Terminer" : "Valider";
-                const buttonColor = "bg-zinc-800 text-green-500 border-green-500";
-                
                 container.innerHTML += `
                     <div class="serie-item">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-xs font-bold">Série ${i}</span>
-                            <button id="btnS${i}" onclick="validerS(${i}, ${isLast})" class="w-32 py-1 text-[10px] border ${buttonColor}">${buttonLabel}</button>
+                            <button id="btnS${i}" onclick="validerS(${i}, ${isLast})" class="w-32 py-1 text-[10px] border bg-zinc-800 text-green-500 border-green-500">${isLast ? "Valider & Terminer" : "Valider"}</button>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-[8px]">Kg</label>
-                                <input type="number" id="c${i}" placeholder="Poids" value="${chargeMin}">
-                            </div>
-                            <div>
-                                <label class="text-[8px]">Répétitions</label>
-                                <input type="number" id="r${i}" value="${r}">
-                            </div>
+                            <div><label>Kg</label><input type="number" id="c${i}" value="${chargeProposee}"></div>
+                            <div><label>Reps</label><input type="number" id="r${i}" value="${r}"></div>
                         </div>
                     </div>
                 `;
             }
-            
             document.getElementById('planificationSection').classList.add('hidden');
             document.getElementById('realisationSection').classList.remove('hidden');
+            window.scrollTo(0, 0);
         }
 
         function validerS(idx, isLast) {
             const charge = parseFloat(document.getElementById(`c${idx}`).value) || 0;
             const reps = parseInt(document.getElementById(`r${idx}`).value) || 0;
+            
             appData.validatedSeries.set(idx, { charge, reps });
+            
             const btn = document.getElementById(`btnS${idx}`);
             if (btn) {
                 btn.disabled = true;
                 btn.innerText = "Série OK";
-                btn.className = "w-32 py-1 text-[10px] bg-green-900 text-white border border-green-900";
+                btn.className = "w-32 py-1 text-[10px] bg-green-900 text-white border-none";
             }
+            
             updateLiveTonnage();
-
+            
             if (!isLast) {
                 lancerRepos();
             } else {
-                masquerRepos();
                 finirAtelier();
             }
         }
@@ -363,13 +433,14 @@
         function lancerRepos() {
             let timeLeft = parseInt(document.getElementById('restTime').value) || 90;
             if (timerInterval) clearInterval(timerInterval);
-            document.getElementById('workStats').style.display = "none";
-            document.getElementById('timerOverlay').style.display = "block";
-            const display = document.getElementById('timerBigDisplay');
+            const display = document.getElementById('timerDisplay');
+            const title = document.getElementById('restTitle');
+            display.classList.remove('invisible');
+            title.classList.remove('invisible');
             const updateDisplay = () => {
                 let m = Math.floor(timeLeft / 60);
                 let s = timeLeft % 60;
-                if (display) display.innerText = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+                display.innerText = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
             };
             updateDisplay();
             timerInterval = setInterval(() => {
@@ -377,32 +448,22 @@
                 updateDisplay();
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
-                    if (display) {
-                        display.innerText = "REPRISE !";
-                        display.classList.add('animate-pulse');
-                    }
+                    display.innerText = "REPRISE !";
+                    display.classList.add('animate-pulse');
                 }
             }, 1000);
         }
 
-        function masquerRepos() {
-            if (timerInterval) clearInterval(timerInterval);
-            const tOverlay = document.getElementById('timerOverlay');
-            const wStats = document.getElementById('workStats');
-            const tDisplay = document.getElementById('timerBigDisplay');
-            if (tOverlay) tOverlay.style.display = "none";
-            if (wStats) wStats.style.display = "flex";
-            if (tDisplay) tDisplay.classList.remove('animate-pulse');
-        }
-
         function finirAtelier() {
-            masquerRepos();
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('monitoringBar').style.display = "none";
             const ws = document.getElementById('workshopName').value;
+            
             let tonnageFinalAtelier = 0;
             let details = [];
-
-            const sortedKeys = Array.from(appData.validatedSeries.keys()).sort((a, b) => a - b);
-            sortedKeys.forEach(idx => {
+            const keys = Array.from(appData.validatedSeries.keys()).sort((a, b) => a - b);
+            
+            keys.forEach(idx => {
                 const data = appData.validatedSeries.get(idx);
                 tonnageFinalAtelier += (data.charge * data.reps);
                 details.push({ serie: idx, charge: data.charge, reps: data.reps });
@@ -410,187 +471,118 @@
 
             appData.exercices.push({ 
                 nom: ws, 
-                tonnage: tonnageFinalAtelier,
-                cibleMin: appData.currentCibles.min,
-                cibleMax: appData.currentCibles.max,
+                tonnage: tonnageFinalAtelier, 
+                cibleMin: appData.currentCibles.min, 
+                cibleMax: appData.currentCibles.max, 
                 details: details 
             });
 
-            document.getElementById('monitoringBar').style.display = "none";
             const resReel = document.getElementById('resultReel');
-            if (resReel) {
-                resReel.innerHTML = `
-                    <div class="text-center p-4 border border-green-500 rounded bg-black space-y-4">
-                        <div class="text-xl font-bold neon">Atelier enregistré</div>
-                        <div class="flex flex-col gap-3">
-                            <button class="py-3 bg-blue-600 text-white" onclick="nouvelAtelier()">+ Faire un autre atelier</button>
-                            <button class="py-3 bg-white text-black" onclick="afficherBilan()">🏁 Finir et voir le bilan</button>
-                        </div>
+            resReel.innerHTML = `
+                <div class="text-center p-4 border border-green-500 rounded bg-black space-y-4">
+                    <div class="text-xl font-bold neon">Atelier enregistré</div>
+                    <div class="flex flex-col gap-3">
+                        <button class="py-3 bg-blue-600 text-white" onclick="nouvelAtelier()">+ Faire un autre atelier</button>
+                        <button class="py-3 bg-white text-black" onclick="afficherBilan()">🏁 Finir et voir le bilan</button>
                     </div>
-                `;
-                setTimeout(() => {
-                    resReel.scrollIntoView({ behavior: 'smooth' });
-                }, 100);
-            }
+                </div>
+            `;
+            setTimeout(() => resReel.scrollIntoView({ behavior: 'smooth' }), 100);
         }
 
         function nouvelAtelier() {
+            appData.validatedSeries.clear();
             document.getElementById('workshopName').value = "";
-            document.getElementById('rm').value = "";
-            document.getElementById('percentMin').value = "";
-            document.getElementById('percentMax').value = "";
-            document.getElementById('series').value = "";
             document.getElementById('realisationSection').classList.add('hidden');
             document.getElementById('planificationSection').classList.remove('hidden');
-            const resReel = document.getElementById('resultReel');
-            if (resReel) resReel.innerHTML = "";
+            document.getElementById('resultReel').innerHTML = "";
             document.getElementById('monitoringBar').style.display = "none";
-            masquerRepos();
+            updateKgCalculations();
+            window.scrollTo(0, 0);
         }
 
         function calculerMedaille() {
             const exs = appData.exercices;
             if (exs.length === 0) return null;
-
             const tousDansZone = exs.every(ex => ex.tonnage >= ex.cibleMin && ex.tonnage <= ex.cibleMax);
-            
-            if (!tousDansZone) return { type: "chocolat", label: "Médaille de Chocolat", emoji: "🍫", color: "text-amber-800", desc: "Au moins un atelier est hors zone cible." };
-
-            let scoreCumule = 0;
-            exs.forEach(ex => {
-                let range = ex.cibleMax - ex.cibleMin;
-                if (range === 0) range = 1;
-                let score = (ex.tonnage - ex.cibleMin) / range;
-                scoreCumule += score;
-            });
-            const scoreMoyen = (scoreCumule / exs.length) * 100;
-
-            if (scoreMoyen >= 70) return { type: "or", label: "Médaille d'Or", emoji: "🥇", color: "text-yellow-400", desc: "Précision exceptionnelle !" };
-            if (scoreMoyen >= 35) return { type: "argent", label: "Médaille d'Argent", emoji: "🥈", color: "text-gray-300", desc: "Belle régularité." };
-            return { type: "bronze", label: "Médaille de Bronze", emoji: "🥉", color: "text-orange-400", desc: "Objectifs atteints." };
+            if (!tousDansZone) return { label: "Médaille de Chocolat", emoji: "🍫", color: "text-amber-800", desc: "Hors zone cible." };
+            let score = 0;
+            exs.forEach(ex => { let r = ex.cibleMax - ex.cibleMin || 1; score += (ex.tonnage - ex.cibleMin) / r; });
+            const avg = (score / exs.length) * 100;
+            if (avg >= 70) return { label: "Médaille d'Or", emoji: "🥇", color: "text-yellow-400", desc: "Expertise totale." };
+            if (avg >= 35) return { label: "Médaille d'Argent", emoji: "🥈", color: "text-gray-300", desc: "Régularité." };
+            return { label: "Médaille de Bronze", emoji: "🥉", color: "text-orange-400", desc: "Objectifs remplis." };
         }
 
         function afficherBilan() {
-            masquerRepos();
             document.getElementById('monitoringBar').style.display = "none";
             document.getElementById('realisationSection').classList.add('hidden');
             document.getElementById('finalSummarySection').classList.remove('hidden');
+            window.scrollTo(0, 0);
             
-            let totalGeneral = 0;
+            let totalSeance = 0;
             let html = "";
             
             appData.exercices.forEach(ex => {
-                totalGeneral += ex.tonnage;
-                const estDansLaCible = (ex.tonnage >= ex.cibleMin && ex.tonnage <= ex.cibleMax);
-                const iconeFeedback = estDansLaCible ? "✅" : "❌";
-                const texteFeedback = estDansLaCible ? "Zone Cible Atteinte" : "Hors Zone Cible";
-                const couleurFeedback = estDansLaCible ? "text-green-500" : "text-red-500";
-
+                totalSeance += ex.tonnage;
+                const ok = (ex.tonnage >= ex.cibleMin && ex.tonnage <= ex.cibleMax);
+                const progressPercent = Math.min(100, Math.round((ex.tonnage / ex.cibleMax) * 100));
+                
                 html += `
-                    <div class="mb-6 p-3 border ${estDansLaCible ? 'border-green-700' : 'border-red-900'} rounded bg-zinc-950">
-                        <div class="flex justify-between items-center mb-1 border-b border-zinc-800 pb-1">
-                            <span class="font-bold text-sm uppercase text-green-400">${ex.nom} ${iconeFeedback}</span>
-                            <span class="text-xs font-bold ${couleurFeedback}">${ex.tonnage} kg</span>
+                    <div class="mb-6 p-4 border ${ok ? 'border-green-700' : 'border-red-900'} rounded bg-zinc-950">
+                        <div class="flex justify-between border-b border-zinc-800 pb-1 mb-3">
+                            <span class="font-bold text-sm uppercase">${ex.nom} ${ok ? '✅' : '❌'}</span>
+                            <span class="text-xs ${ok ? 'text-green-500' : 'text-red-500'}">${ex.tonnage} kg réalisés</span>
                         </div>
-                        <div class="flex justify-between items-center text-[9px] mb-2 px-1">
-                            <span class="opacity-60">Cible : ${ex.cibleMin} - ${ex.cibleMax} kg</span>
-                            <span class="${couleurFeedback} font-bold">${texteFeedback}</span>
+                        
+                        <div class="mt-2">
+                            <div class="flex justify-between text-[10px] font-bold mb-1">
+                                <span class="text-blue-400">${ex.cibleMin} kg (Min)</span>
+                                <span class="text-blue-400">${ex.cibleMax} kg (Max)</span>
+                            </div>
+                            <div class="progress-bg">
+                                <div class="progress-fill ${ok ? 'bg-green-500' : 'bg-red-500'}" style="width: ${progressPercent}%"></div>
+                            </div>
+                            <div class="text-[8px] mt-1 text-center uppercase opacity-50">
+                                Statut : ${progressPercent}% de l'objectif max
+                            </div>
                         </div>
-                        <table class="text-[10px]">
-                            <thead>
-                                <tr><th class="py-1">Série</th><th class="py-1">Charge</th><th class="py-1">Reps</th><th class="py-1">Total</th></tr>
-                            </thead>
-                            <tbody>
-                                ${ex.details.map(d => `
-                                    <tr><td>${d.serie}</td><td>${d.charge} kg</td><td>${d.reps}</td><td class="text-green-500">${d.charge * d.reps} kg</td></tr>
-                                `).join('')}
-                            </tbody>
+
+                        <table class="text-[9px] mt-4">
+                            <thead><tr><th>Série</th><th>Kg</th><th>Reps</th><th>Total</th></tr></thead>
+                            <tbody>${ex.details.map(d => `<tr><td>${d.serie}</td><td>${d.charge}</td><td>${d.reps}</td><td class="text-green-500">${d.charge*d.reps}</td></tr>`).join('')}</tbody>
                         </table>
                     </div>
                 `;
             });
-
-            html += `
-                <div id="totalSeanceBadge" class="p-4 bg-green-500 text-black font-black text-xl rounded-lg shadow-xl uppercase text-center">
-                    Total Séance : ${totalGeneral} kg
-                </div>
-            `;
             
-            const summary = document.getElementById('summaryContent');
-            if (summary) summary.innerHTML = html;
-
-            const medaille = calculerMedaille();
-            const container = document.getElementById('medalContainer');
-            if (medaille && container) {
-                container.classList.remove('hidden');
-                document.getElementById('medalEmoji').innerText = medaille.emoji;
-                document.getElementById('medalTitle').innerText = medaille.label;
-                document.getElementById('medalTitle').className = `text-xl font-black uppercase tracking-widest ${medaille.color}`;
-                document.getElementById('medalDesc').innerText = medaille.desc;
-                
-                summary.appendChild(container);
+            html += `<div class="p-4 bg-green-500 text-black font-black text-xl rounded uppercase text-center">Total Séance : ${totalSeance} kg</div>`;
+            document.getElementById('summaryContent').innerHTML = html;
+            
+            const med = calculerMedaille();
+            if (med) {
+                const mc = document.getElementById('medalContainer');
+                mc.classList.remove('hidden');
+                document.getElementById('medalEmoji').innerText = med.emoji;
+                document.getElementById('medalTitle').innerText = med.label;
+                document.getElementById('medalTitle').className = `text-xl font-black uppercase tracking-widest ${med.color}`;
+                document.getElementById('medalDesc').innerText = med.desc;
             }
         }
 
         function exportPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('fr-FR');
-            const medaille = calculerMedaille();
-
-            doc.setFont("courier", "bold");
-            doc.setFontSize(18);
-            doc.setTextColor(34, 197, 94); 
+            const { jsPDF } = window.jspdf; const doc = new jsPDF();
+            doc.setFont("courier", "bold"); doc.setTextColor(34, 197, 94);
             doc.text("BILAN TONNAGE - STAPS REIMS", 105, 20, { align: "center" });
-            
-            doc.setFontSize(12);
-            doc.setTextColor(0, 0, 0);
-            doc.text(`Séance du ${dateStr}`, 105, 30, { align: "center" });
-
             let currentY = 40;
-            let totalGeneral = 0;
-
-            appData.exercices.forEach((ex, index) => {
-                totalGeneral += ex.tonnage;
-                const estDansLaCible = (ex.tonnage >= ex.cibleMin && ex.tonnage <= ex.cibleMax);
-                const status = estDansLaCible ? "VALIDE" : "HORS CIBLE";
-                
-                doc.setFontSize(11);
-                doc.setTextColor(estDansLaCible ? 0 : 200, estDansLaCible ? 100 : 0, 0);
-                doc.text(`${index + 1}. ${ex.nom.toUpperCase()} (${status})`, 20, currentY);
-                doc.setFontSize(9);
-                doc.setTextColor(100);
-                doc.text(`Tonnage réalisé : ${ex.tonnage}kg | Cible prévue : ${ex.cibleMin}-${ex.cibleMax}kg`, 20, currentY + 5);
-                
-                const tableBody = ex.details.map(d => [`Série ${d.serie}`, `${d.charge} kg`, d.reps, `${d.charge * d.reps} kg`]);
-
-                doc.autoTable({
-                    startY: currentY + 8,
-                    head: [['SÉRIE', 'CHARGE', 'REPS', 'TOTAL']],
-                    body: tableBody,
-                    theme: 'striped',
-                    headStyles: { fillColor: estDansLaCible ? [0, 100, 0] : [150, 0, 0], textColor: [255, 255, 255], halign: 'center' },
-                    bodyStyles: { halign: 'center', fontSize: 9 },
-                    margin: { horizontal: 20 },
-                    styles: { font: 'courier' }
-                });
-
+            appData.exercices.forEach((ex, idx) => {
+                doc.setFontSize(10); doc.setTextColor(0,0,0);
+                doc.text(`${idx + 1}. ${ex.nom.toUpperCase()}`, 20, currentY);
+                doc.text(`Réalisé : ${ex.tonnage}kg | Prévu : ${ex.cibleMin}-${ex.cibleMax}kg`, 20, currentY + 5);
+                doc.autoTable({ startY: currentY + 10, head: [['SÉRIE', 'CHARGE', 'REPS', 'TOTAL']], body: ex.details.map(d => [d.serie, d.charge, d.reps, d.charge*d.reps]), theme: 'grid', styles: { font: 'courier' } });
                 currentY = doc.lastAutoTable.finalY + 15;
-                if (currentY > 250) { doc.addPage(); currentY = 20; }
             });
-
-            doc.setFontSize(14);
-            doc.setTextColor(0, 0, 0);
-            doc.text(`TONNAGE TOTAL DE LA SÉANCE : ${totalGeneral} kg`, 105, currentY + 10, { align: "center" });
-            
-            if(medaille) {
-                doc.setFontSize(12);
-                doc.setTextColor(150, 150, 0);
-                doc.text(`RÉCOMPENSE : ${medaille.label.toUpperCase()}`, 105, currentY + 20, { align: "center" });
-            }
-
-            doc.save(`Tonnage_Reims_${dateStr.replace(/\//g, '-')}.pdf`);
+            doc.save("Bilan_Tonnage.pdf");
         }
     </script>
 </body>
